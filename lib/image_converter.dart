@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:camera/camera.dart';
@@ -23,7 +22,6 @@ Future<Uint8List?> cameraImageToUint8List(CameraImage cameraImage) async{
 }
 
 img.Image? _convertYUV420(CameraImage cameraImage) {
-  // Implementazione della conversione YUV420 come mostrato in precedenza
   try {
     final planeData = cameraImage.planes.map((plane) => plane.bytes).toList();
 
@@ -59,33 +57,27 @@ img.Image? _convertYUV420(CameraImage cameraImage) {
   return null;
 }
 
-Future<Uint8List?> optimize(Uint8List bytes, int width, int height, [int maxWidthHeigth = 211]) async {
+Future<Uint8List?> optimize(Uint8List bytes, int width, int height, [double quality = 0.1]) async {
+  Uint8List? optimized;
 
-    int maxDimension = max(width, height);
-    Uint8List? optimized;
+  ImageProvider provider = Image.memory(bytes).image;
+  ResizeImage resized = ResizeImage(
+    provider, 
+    height: (height * quality).toInt(), 
+    width: (width * quality).toInt()
+  );
+  final Completer<Uint8List?> completer = Completer<Uint8List?>();
 
-    if(maxDimension > maxWidthHeigth)
-    {
+  resized.resolve(ImageConfiguration.empty).addListener(
+    ImageStreamListener((imageInfo, synchronousCall) async{              
+      final bytes = await imageInfo.image.toByteData(format: ImageByteFormat.png);
+      if (!completer.isCompleted) {
+        completer.complete(bytes?.buffer.asUint8List());
+      }
+    })
+  );
 
-      ImageProvider provider = Image.memory(bytes).image;
-      ResizeImage resized = ResizeImage(
-        provider, 
-        height: maxDimension == height? maxWidthHeigth : null,  
-        width: maxDimension == width? maxWidthHeigth : null,
-      );
-      final Completer<Uint8List?> completer = Completer<Uint8List?>();
-
-      resized.resolve(ImageConfiguration.empty).addListener(
-        ImageStreamListener((imageInfo, synchronousCall) async{              
-          final bytes = await imageInfo.image.toByteData(format: ImageByteFormat.png);
-          if (!completer.isCompleted) {
-            completer.complete(bytes?.buffer.asUint8List());
-          }
-        })
-      );
-
-      optimized = await completer.future;
-    }
-    
-    return optimized;
-  }
+  optimized = await completer.future;
+  
+  return optimized;
+}
