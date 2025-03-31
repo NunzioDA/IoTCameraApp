@@ -21,16 +21,23 @@ class CameraScreenState extends State<CameraScreen> {
   late Timer myTimer;
 
   bool imageRequestPending = false;
-
+  bool checkingImageRequest = false;
+  
   @override
   void initState() {
     super.initState();
     _initializeCamera();
 
     myTimer = Timer.periodic(
-      const Duration(seconds: 5), 
+      const Duration(milliseconds: 500), 
       (timer) async{
-        imageRequestPending = await WebServer.isImageRequestPending();
+        if(!checkingImageRequest){
+          checkingImageRequest = true;
+          print("CheckingReq")    ;     
+          imageRequestPending = await WebServer.isImageRequestPending(); 
+          checkingImageRequest = false;
+          
+        }
       }
     );
   }
@@ -46,12 +53,13 @@ class CameraScreenState extends State<CameraScreen> {
           _controller!.startImageStream((image) async{
             if(imageRequestPending){
               imageRequestPending = false;
+              
               Uint8List? newImage = await cameraImageToUint8List(image);
               if(newImage != null)
               {
-                print("sending image");
+                print("Sending new image");
                 WebServer.sendImage(newImage);
-              }
+              }              
             }
           });
         });
