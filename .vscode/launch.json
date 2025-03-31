@@ -8,19 +8,30 @@
         {
             "name": "iot_camera_sensor_app",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define-from-file=./env/.env",
+            ],
         },
         {
             "name": "iot_camera_sensor_app (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "args": [
+                "--dart-define-from-file=./env/.env",
+            ],
         },
         {
             "name": "iot_camera_sensor_app (release mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "args": [
+                "--dart-define-from-file=./env/.env",
+            ],
         }
     ]
 }
