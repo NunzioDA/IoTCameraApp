@@ -8,10 +8,8 @@ import 'package:image/image.dart' as img;
 Future<Uint8List?> cameraImageToUint8List(CameraImage cameraImage) async{
   try {
     if (cameraImage.format.group == ImageFormatGroup.yuv420 || cameraImage.format.group == ImageFormatGroup.nv21) {
-      img.Image? image = _convertYUV420(cameraImage); // Oppure _convertNV21, se necessario
-      if (image != null) {
-        return await optimize(Uint8List.fromList(img.encodeJpg(image)), image.width, image.height);
-      }
+      img.Image image = convertYUV420ToRGB(cameraImage); // Oppure _convertNV21, se necessario
+      return await optimize(Uint8List.fromList(img.encodeJpg(image)), image.width, image.height);
     } else if (cameraImage.format.group == ImageFormatGroup.jpeg) {
       return await optimize(cameraImage.planes[0].bytes, cameraImage.planes[0].width!, cameraImage.planes[0].height!);
     }
@@ -21,43 +19,47 @@ Future<Uint8List?> cameraImageToUint8List(CameraImage cameraImage) async{
   return null;
 }
 
-img.Image? _convertYUV420(CameraImage cameraImage) {
-  try {
-    final planeData = cameraImage.planes.map((plane) => plane.bytes).toList();
-
-    final yPlane = planeData[0];
-    final uPlane = planeData[1];
-    final vPlane = planeData[2];
-
-    final width = cameraImage.width;
-    final height = cameraImage.height;
-
-    final img.Image imgYuv420 = img.Image(width: width, height: height);
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final uvIndex = (x / 2).floor() + (y / 2).floor() * (width / 2);
-        final index = y * width + x;
-
-        final yp = yPlane[index];
-        final up = uPlane[uvIndex.toInt()];
-        final vp = vPlane[uvIndex.toInt()];
-
-        final r = (yp + 1.370705 * (vp - 128)).round().clamp(0, 255);
-        final g = (yp - 0.698001 * (vp - 128) - 0.337633 * (up - 128)).round().clamp(0, 255);
-        final b = (yp + 1.732446 * (up - 128)).round().clamp(0, 255);
-
-        imgYuv420.setPixelRgba(x, y, r, g, b, 255);
-      }
-    }
-    return imgYuv420;
-  } catch (e) {
-    print("ERROR: " + e.toString());
-  }
-  return null;
+Future<Uint8List> convertYUV420ToJPEG(CameraImage image) async{
+  img.Image imgData = convertYUV420ToRGB(image); // Conversione YUV420 → RGB
+  Uint8List jpgimage = Uint8List.fromList(img.encodeJpg(imgData, quality: 100)); // Compressa in JPEG
+  return (await optimize(jpgimage, imgData.width, imgData.height, 0.1))!;
 }
 
-Future<Uint8List?> optimize(Uint8List bytes, int width, int height, [double quality = 0.1]) async {
+img.Image convertYUV420ToRGB(CameraImage image) {
+  final int width = image.width;
+  final int height = image.height;
+
+  final img.Image imgData = img.Image(width: width, height: height);
+
+  // Piani dell'immagine YUV420
+  final Uint8List yPlane = image.planes[0].bytes;
+  final Uint8List uPlane = image.planes[1].bytes;
+  final Uint8List vPlane = image.planes[2].bytes;
+
+  final int uvRowStride = image.planes[1].bytesPerRow;
+  final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final int yIndex = y * width + x;
+      final int uvIndex = ((y ~/ 2) * uvRowStride) + (x ~/ 2) * uvPixelStride;
+
+      final int yValue = yPlane[yIndex] & 0xFF;
+      final int uValue = uPlane[uvIndex] & 0xFF;
+      final int vValue = vPlane[uvIndex] & 0xFF;
+
+      final int r = (yValue + 1.370705 * (vValue - 128)).clamp(0, 255).toInt();
+      final int g = (yValue - 0.698001 * (vValue - 128) - 0.337633 * (uValue - 128)).clamp(0, 255).toInt();
+      final int b = (yValue + 1.732446 * (uValue - 128)).clamp(0, 255).toInt();
+
+      imgData.setPixelRgb(x, y, r, g, b);
+    }
+  }
+
+  return imgData;
+}
+
+Future<Uint8List?> optimize(Uint8List bytes, int width, int height, [double quality = 0.6]) async {
   Uint8List? optimized;
 
   ImageProvider provider = Image.memory(bytes).image;
