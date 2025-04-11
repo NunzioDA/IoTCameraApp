@@ -4,13 +4,24 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class WebServer {
-  static String password = String.fromEnvironment("PASSWORD");
-  static String serverName = String.fromEnvironment("SERVER_NAME");
-  static String backend = String.fromEnvironment("BACKEND");
 
+  static String get serverName
+  {    
+    return const String.fromEnvironment("SERVER_NAME");
+  }
+
+  static String get password
+  {    
+    return const String.fromEnvironment("PASSWORD");
+  }
+
+  static String get backend
+  {    
+    return const String.fromEnvironment("BACKEND");
+  }
+  
   static Uri geBackendUri(String phpFile, Map<String, String>? parameters)
   {
-    print(String.fromEnvironment("PASSWORD"));
     Uri uri;
 
     uri = Uri.https(serverName,'$backend/$phpFile.php', parameters);
