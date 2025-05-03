@@ -5,33 +5,21 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
-Future<Uint8List?> cameraImageToUint8List(CameraImage cameraImage) async{
-  try {
-    if (cameraImage.format.group == ImageFormatGroup.yuv420 || cameraImage.format.group == ImageFormatGroup.nv21) {
-      img.Image image = convertYUV420ToRGB(cameraImage); // Oppure _convertNV21, se necessario
-      return await optimize(Uint8List.fromList(img.encodeJpg(image)), image.width, image.height);
-    } else if (cameraImage.format.group == ImageFormatGroup.jpeg) {
-      return await optimize(cameraImage.planes[0].bytes, cameraImage.planes[0].width!, cameraImage.planes[0].height!);
-    }
-  } catch (e) {
-    print("Errore nella conversione CameraImage: $e");
-  }
-  return null;
-}
 
+// This function is used to convert a YUV420T to a Jpeg image
 Future<Uint8List> convertYUV420ToJPEG(CameraImage image) async{
-  img.Image imgData = convertYUV420ToRGB(image); // Conversione YUV420 → RGB
-  Uint8List jpgimage = Uint8List.fromList(img.encodeJpg(imgData, quality: 100)); // Compressa in JPEG
+  img.Image imgData = convertYUV420ToRGB(image); 
+  Uint8List jpgimage = Uint8List.fromList(img.encodeJpg(imgData, quality: 100)); 
   return (await optimize(jpgimage, imgData.width, imgData.height, 0.1))!;
 }
 
+// This function is used to convert a YUV420T image to a RGB
 img.Image convertYUV420ToRGB(CameraImage image) {
   final int width = image.width;
   final int height = image.height;
 
   final img.Image imgData = img.Image(width: width, height: height);
 
-  // Piani dell'immagine YUV420
   final Uint8List yPlane = image.planes[0].bytes;
   final Uint8List uPlane = image.planes[1].bytes;
   final Uint8List vPlane = image.planes[2].bytes;
@@ -59,6 +47,8 @@ img.Image convertYUV420ToRGB(CameraImage image) {
   return imgData;
 }
 
+// This function is used to optimize the image
+// by changing its quality and dimensions
 Future<Uint8List?> optimize(Uint8List bytes, int width, int height, [double quality = 0.6]) async {
   Uint8List? optimized;
 
