@@ -5,8 +5,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:iot_camera_sensor_app/communication.dart';
 import 'package:iot_camera_sensor_app/image_converter.dart';
-import 'package:iot_camera_sensor_app/prova_immagine.dart';
-
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
 
